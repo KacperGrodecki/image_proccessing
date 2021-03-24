@@ -10,6 +10,7 @@ import os
 import pandas as pd
 import cv2 
 import os
+import PIL
 from PIL import Image
 from pytesseract import image_to_string
 import numpy as np
@@ -37,7 +38,6 @@ class Window(tk.Frame):
         self.imageProcessing=imageProcessing
         self.init_window()
         self.countter=0
-        
     def init_window(self):
         # master title     
         self.master.title("Renishaw")
@@ -58,15 +58,13 @@ class Window(tk.Frame):
         file.add_command(label ="Read text", command = self.read_text)
         file.add_command(label ="Next contour", command = self.next_contour)
         menu.add_cascade(label="Figure", menu=file)
+        #canvas
         
-        #progress bar
-        self.progressbar = ttk.Progressbar(self.master, maximum = 100,  orient='horizontal', mode='determinate')
-        self.progressbar["value"] = 0
-        self.progressbar.pack(expand=True, fill=tk.BOTH, side=tk.BOTTOM)
         # status label
         self.status_label = tk.StringVar()
         self.status_label.set("Begining")
         label = tk.Label( self.master, textvariable=self.status_label, relief=tk.RAISED,height=2,width=30 )
+        label.place(relx=1.0, rely=1.0,anchor ='nw')
         label.pack()
           
     def client_exit(self):
@@ -74,16 +72,37 @@ class Window(tk.Frame):
         
     def open_file(self):
         self.file,self.image=self.opening.open_file(self.status_label)
-        tk.Label(root, image=self.image ).pack() 
+        
+        self.can=tk.Canvas(self.master, width=1000, height=1500)
+        self.can.pack()#(fill="both", expand=True)
+        self.can.create_image((0, 0), image=self.image,anchor='nw')
+        
+        #tk.Label(self.master, image=self.image ).pack() 
         
     def find_contour(self):
         self.contours=self.imageProcessing.find_contours(self.file)
         print(len(self.contours))
-        self.progressbar["value"]=len(self.contours)
         
     def read_text(self):
         cropped_board,mask_board=self.contours[self.countter]
-        self.imageProcessing.analyze_figures(cropped_board,mask_board)
+        self.imageProcessing.analyze_figures(cropped_board,mask_board,self.status_label)
+        
+        
+        print(cropped_board.shape)
+        b,g,r = cv2.split(cropped_board)
+        print(b.shape,g.shape,r.shape)
+        img = cv2.merge((r,g,b))
+        print(img.shape)
+        
+        im = Image.fromarray(img)
+        im = im.resize((600, 500), Image.ANTIALIAS)
+        
+        self.image=ImageTk.PhotoImage(image=im)
+
+        #root_text= tk.Toplevel()
+        #root_text.geometry("400x400")        
+        self.can.create_image((0, 0), image=self.image,anchor='nw' )
+        #tk.Label(self.master, image=self.image ).pack()#root 
         
     def next_contour(self):
         self.countter+=1
@@ -113,7 +132,7 @@ class Opening:
         img = cv2.merge((r,g,b))
         
         im = Image.fromarray(img)
-        im = im.resize((600, 500), Image.ANTIALIAS)
+        im = im.resize((500, 700))
         return file,ImageTk.PhotoImage(image=im) 
     
     
@@ -175,11 +194,12 @@ class ImageProcessing:
           word_new = word.replace(char, "")
       return word_new
   
-    def sentences_analyz(self,sentences):
+    def sentences_analyz(self,sentences,status_label ):
         print('start sentences_analyz \n\n')
         letter,word_new,sentence,sentence_new='','','',''
-        w_len,exists,correctness=[],[],[0,0,0,0]
-    
+        w_len,exists=[],[]
+        data=[]
+        sent=[]
         for sen in sentences:
                     for s in sen[0]:
                         if s.isspace():
@@ -200,13 +220,13 @@ class ImageProcessing:
                     sentence_new=sentence_new.join(sentence)
                     np_w_len=np.array(w_len)
                     np_exists=np.array(exists)
-                    #print(w_len)
+                    print(w_len)
                     if w_len:
                         print('full sentence','\n',sentence_new)
                         print('numeric analysis ','std ',np.std(np_w_len),'mean ',np.mean(np_w_len),'length ',np_w_len.shape)
                         print('dictionary analysis ',np_exists)
-                        data=sentence_new,np_w_len,np_exists 
-                        #yield data
+                        data.append([sentence_new,np_w_len,np_exists])
+                        sent.append(sentence_new)
                     else:
                         print('empty words ',sentence_new)
                     sentence=''
@@ -214,6 +234,11 @@ class ImageProcessing:
                     w_len=[]
                     exists=[]
                     print('next method\n')
+        if sent:
+            a=len(sent)
+            idx=np.arange(0,a)
+            elements=[sent[i] for i in idx]
+            status_label.set(elements) 
                     
     def countrurs(self,gray,ythresh): 
       thresh=255-gray
@@ -239,9 +264,8 @@ class ImageProcessing:
                 ythresh = y
       return cntrs[::-1],topbox
     
-    def analyze_figures(self,cropped_board,mask_board):
+    def analyze_figures(self,cropped_board,mask_board,status_label ):
         print('start analyze')
-        correctnes_list=[]
         if re.search('[a-zA-Z]',image_to_string(cropped_board,lang='pol',config = r'--oem 3 --psm 3')) or re.search('[a-zA-Z]',image_to_string(mask_board, lang='pol',config= r'--oem 3 --psm 3')):
             print('words inside')
             string_dig_crop=image_to_string(cropped_board,lang='pol',config = r'outputbase digits')#r'--oem 3 --psm 3 outputbase digits'
@@ -251,7 +275,7 @@ class ImageProcessing:
             x0,x1,x2,x3=0,1,2,3
             sentences=[[string_dig_crop,x0],[string_dig_mask,x1],[string_let_crop,x2],[string_let_mask,x3]]
             
-            self.sentences_analyz(sentences)
+            self.sentences_analyz(sentences,status_label)
             print('figures printing')
             figure(figsize=(20,50))
             plt.imshow(cropped_board)
@@ -296,6 +320,6 @@ root = tk.Tk()
 opening=Opening()
 imageProcessing=ImageProcessing()
     
-root.geometry("700x600")
+root.geometry("1000x1000")
 app = Window(root,opening,imageProcessing)
 root.mainloop()  
