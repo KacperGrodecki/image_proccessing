@@ -61,17 +61,29 @@ class Window(tk.Frame):
         #canvas
         
         # status label
-        self.status_label = tk.StringVar()
-        self.status_label.set("Begining")
-        label = tk.Label( self.master, textvariable=self.status_label, relief=tk.RAISED,height=2,width=30 )
-        label.place(relx=1.0, rely=1.0,anchor ='nw')
-        label.pack()
+        self.status_label0 = tk.StringVar()
+        self.status_label1 = tk.StringVar()
+        self.status_label2 = tk.StringVar()
+        self.status_label3 = tk.StringVar()
+        self.status_label0.set("Begining")
+        label0 = tk.Label( self.master, textvariable=self.status_label0, relief=tk.RAISED,height=2,width=30 )
+        label1 = tk.Label( self.master, textvariable=self.status_label1, relief=tk.RAISED,height=2,width=30 )
+        label2 = tk.Label( self.master, textvariable=self.status_label2, relief=tk.RAISED,height=2,width=30 )
+        label3 = tk.Label( self.master, textvariable=self.status_label3, relief=tk.RAISED,height=2,width=30 )
+        label0.place(relx=1.0, rely=1.0,anchor ='nw')
+        label1.place(relx=1.0, rely=1.0,anchor ='nw')
+        label2.place(relx=1.0, rely=1.0,anchor ='nw')
+        label3.place(relx=1.0, rely=1.0,anchor ='nw')
+        label0.pack()
+        label1.pack()
+        label2.pack()
+        label3.pack()
           
     def client_exit(self):
         self.master.destroy()
         
     def open_file(self):
-        self.file,self.image=self.opening.open_file(self.status_label)
+        self.file,self.image=self.opening.open_file(self.status_label0)
         
         self.can=tk.Canvas(self.master, width=1000, height=1500)
         self.can.pack()#(fill="both", expand=True)
@@ -85,17 +97,18 @@ class Window(tk.Frame):
         
     def read_text(self):
         cropped_board,mask_board=self.contours[self.countter]
-        self.imageProcessing.analyze_figures(cropped_board,mask_board,self.status_label)
+        self.imageProcessing.analyze_figures(cropped_board,mask_board,
+                                             self.status_label0,self.status_label1,self.status_label2,self.status_label3)
         
-        
-        print(cropped_board.shape)
+        height, width, channels = cropped_board.shape
         b,g,r = cv2.split(cropped_board)
-        print(b.shape,g.shape,r.shape)
         img = cv2.merge((r,g,b))
-        print(img.shape)
         
         im = Image.fromarray(img)
-        im = im.resize((600, 500), Image.ANTIALIAS)
+        print(height,' ', width) 
+        #if width>400:
+        print(int(height/4),' ', int(width/4))
+        im = im.resize((int( width/4),int(height/4)))
         
         self.image=ImageTk.PhotoImage(image=im)
 
@@ -105,6 +118,10 @@ class Window(tk.Frame):
         #tk.Label(self.master, image=self.image ).pack()#root 
         
     def next_contour(self):
+        self.status_label0.set('empty')
+        self.status_label1.set('empty')
+        self.status_label2.set('empty')
+        self.status_label3.set('empty')
         self.countter+=1
         print(self.countter)
         self.read_text()
@@ -117,8 +134,8 @@ class Opening:
     def __init__(self):
         pass
     
-    def open_file(self,status_label):
-        status_label.set("Opening file")
+    def open_file(self,status_label0):
+        status_label0.set("Opening file")
         
         #finction1- open file
         file = askopenfilename(initialdir="C:/Users/",
@@ -126,7 +143,7 @@ class Opening:
                            title = "Choose a file.")  
         img = cv2.imread(file)
         print('file opened')
-        status_label.set("File opened")
+        status_label0.set("File opened")
         
         b,g,r = cv2.split(img)
         img = cv2.merge((r,g,b))
@@ -194,7 +211,7 @@ class ImageProcessing:
           word_new = word.replace(char, "")
       return word_new
   
-    def sentences_analyz(self,sentences,status_label ):
+    def sentences_analyz(self,sentences,status_label0,status_label1,status_label2,status_label3 ):
         print('start sentences_analyz \n\n')
         letter,word_new,sentence,sentence_new='','','',''
         w_len,exists=[],[]
@@ -221,12 +238,16 @@ class ImageProcessing:
                     np_w_len=np.array(w_len)
                     np_exists=np.array(exists)
                     print(w_len)
+                    if sentence_new:
+                        sent.append(sentence_new)
+                    else:
+                        sent.append(0)
                     if w_len:
                         print('full sentence','\n',sentence_new)
                         print('numeric analysis ','std ',np.std(np_w_len),'mean ',np.mean(np_w_len),'length ',np_w_len.shape)
                         print('dictionary analysis ',np_exists)
                         data.append([sentence_new,np_w_len,np_exists])
-                        sent.append(sentence_new)
+                        #sent.append(sentence_new)
                     else:
                         print('empty words ',sentence_new)
                     sentence=''
@@ -234,11 +255,19 @@ class ImageProcessing:
                     w_len=[]
                     exists=[]
                     print('next method\n')
-        if sent:
-            a=len(sent)
-            idx=np.arange(0,a)
-            elements=[sent[i] for i in idx]
-            status_label.set(elements) 
+        #if sent:
+        #    a=len(sent)
+        #    idx=np.arange(0,a)
+        #    elements=[sent[i] for i in idx]
+        #    status_label.set(elements) 
+        #else:
+        #    status_label.set('empty') 
+        #    print('empty')
+        status_label0.set(sent[0])
+        status_label1.set(sent[1])
+        status_label2.set(sent[2])
+        status_label3.set(sent[3])
+        
                     
     def countrurs(self,gray,ythresh): 
       thresh=255-gray
@@ -264,7 +293,7 @@ class ImageProcessing:
                 ythresh = y
       return cntrs[::-1],topbox
     
-    def analyze_figures(self,cropped_board,mask_board,status_label ):
+    def analyze_figures(self,cropped_board,mask_board,status_label0,status_label1,status_label2,status_label3):
         print('start analyze')
         if re.search('[a-zA-Z]',image_to_string(cropped_board,lang='pol',config = r'--oem 3 --psm 3')) or re.search('[a-zA-Z]',image_to_string(mask_board, lang='pol',config= r'--oem 3 --psm 3')):
             print('words inside')
@@ -275,7 +304,7 @@ class ImageProcessing:
             x0,x1,x2,x3=0,1,2,3
             sentences=[[string_dig_crop,x0],[string_dig_mask,x1],[string_let_crop,x2],[string_let_mask,x3]]
             
-            self.sentences_analyz(sentences,status_label)
+            self.sentences_analyz(sentences, status_label0,status_label1,status_label2,status_label3)
             print('figures printing')
             figure(figsize=(20,50))
             plt.imshow(cropped_board)
@@ -285,6 +314,7 @@ class ImageProcessing:
             #plt.show() 
             #print('figures printed')
         else:
+            status_label0.set('empty') 
             print('not analysing')
             
     #loading contours        
