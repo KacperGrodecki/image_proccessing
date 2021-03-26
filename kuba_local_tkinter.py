@@ -61,23 +61,45 @@ class Window(tk.Frame):
         #canvas
         
         # status label
+        self.var0 = tk.IntVar()
+        self.var1 = tk.IntVar()
+        self.var2 = tk.IntVar()
+        self.var3 = tk.IntVar()
+        
         self.status_label0 = tk.StringVar()
         self.status_label1 = tk.StringVar()
         self.status_label2 = tk.StringVar()
         self.status_label3 = tk.StringVar()
+        
         self.status_label0.set("Begining")
-        label0 = tk.Label( self.master, textvariable=self.status_label0, relief=tk.RAISED,height=2,width=30 )
-        label1 = tk.Label( self.master, textvariable=self.status_label1, relief=tk.RAISED,height=2,width=30 )
-        label2 = tk.Label( self.master, textvariable=self.status_label2, relief=tk.RAISED,height=2,width=30 )
-        label3 = tk.Label( self.master, textvariable=self.status_label3, relief=tk.RAISED,height=2,width=30 )
+        
+        label0 = tk.Label( self.master, textvariable=self.status_label0, relief=tk.RAISED,height=2,width=50 )
+        label1 = tk.Label( self.master, textvariable=self.status_label1, relief=tk.RAISED,height=2,width=50 )
+        label2 = tk.Label( self.master, textvariable=self.status_label2, relief=tk.RAISED,height=2,width=50 )
+        label3 = tk.Label( self.master, textvariable=self.status_label3, relief=tk.RAISED,height=2,width=50 )
+        
+        c0 = tk.Checkbutton(self.master, text='Correct?',variable=self.var0, onvalue=1, offvalue=0)
+        c1 = tk.Checkbutton(self.master, text='Correct?',variable=self.var1, onvalue=1, offvalue=0)
+        c2 = tk.Checkbutton(self.master, text='Correct?',variable=self.var2, onvalue=1, offvalue=0)
+        c3 = tk.Checkbutton(self.master, text='Correct?',variable=self.var3, onvalue=1, offvalue=0)
+        
         label0.place(relx=1.0, rely=1.0,anchor ='nw')
+        c0.place(relx=1.0, rely=1.0,anchor ='nw')
         label1.place(relx=1.0, rely=1.0,anchor ='nw')
+        c1.place(relx=1.0, rely=1.0,anchor ='nw')
         label2.place(relx=1.0, rely=1.0,anchor ='nw')
+        c2.place(relx=1.0, rely=1.0,anchor ='nw')
         label3.place(relx=1.0, rely=1.0,anchor ='nw')
+        c3.place(relx=1.0, rely=1.0,anchor ='nw')
+        
         label0.pack()
+        c0.pack()
         label1.pack()
+        c1.pack()
         label2.pack()
+        c2.pack()
         label3.pack()
+        c3.pack()
           
     def client_exit(self):
         self.master.destroy()
@@ -97,25 +119,17 @@ class Window(tk.Frame):
         
     def read_text(self):
         cropped_board,mask_board=self.contours[self.countter]
-        self.imageProcessing.analyze_figures(cropped_board,mask_board,
+        data=self.imageProcessing.analyze_figures(cropped_board,mask_board,
                                              self.status_label0,self.status_label1,self.status_label2,self.status_label3)
         
         height, width, channels = cropped_board.shape
         b,g,r = cv2.split(cropped_board)
         img = cv2.merge((r,g,b))
-        
         im = Image.fromarray(img)
-        print(height,' ', width) 
-        #if width>400:
-        print(int(height/4),' ', int(width/4))
-        im = im.resize((int( width/4),int(height/4)))
-        
-        self.image=ImageTk.PhotoImage(image=im)
 
-        #root_text= tk.Toplevel()
-        #root_text.geometry("400x400")        
+        im = im.resize((int( width/4),int(height/4)))
+        self.image=ImageTk.PhotoImage(image=im)
         self.can.create_image((0, 0), image=self.image,anchor='nw' )
-        #tk.Label(self.master, image=self.image ).pack()#root 
         
     def next_contour(self):
         self.status_label0.set('empty')
@@ -125,7 +139,7 @@ class Window(tk.Frame):
         self.countter+=1
         print(self.countter)
         self.read_text()
-            
+        
         
              
       
@@ -237,11 +251,12 @@ class ImageProcessing:
                     sentence_new=sentence_new.join(sentence)
                     np_w_len=np.array(w_len)
                     np_exists=np.array(exists)
-                    print(w_len)
                     if sentence_new:
+                        data.append([sentence_new,np_w_len,np_exists])
                         sent.append(sentence_new)
                     else:
-                        sent.append(0)
+                        data.append(['',np.nan,np.nan])
+                        sent.append('empty')
                     if w_len:
                         print('full sentence','\n',sentence_new)
                         print('numeric analysis ','std ',np.std(np_w_len),'mean ',np.mean(np_w_len),'length ',np_w_len.shape)
@@ -255,19 +270,11 @@ class ImageProcessing:
                     w_len=[]
                     exists=[]
                     print('next method\n')
-        #if sent:
-        #    a=len(sent)
-        #    idx=np.arange(0,a)
-        #    elements=[sent[i] for i in idx]
-        #    status_label.set(elements) 
-        #else:
-        #    status_label.set('empty') 
-        #    print('empty')
         status_label0.set(sent[0])
         status_label1.set(sent[1])
         status_label2.set(sent[2])
         status_label3.set(sent[3])
-        
+        return data
                     
     def countrurs(self,gray,ythresh): 
       thresh=255-gray
@@ -304,15 +311,13 @@ class ImageProcessing:
             x0,x1,x2,x3=0,1,2,3
             sentences=[[string_dig_crop,x0],[string_dig_mask,x1],[string_let_crop,x2],[string_let_mask,x3]]
             
-            self.sentences_analyz(sentences, status_label0,status_label1,status_label2,status_label3)
+            data=self.sentences_analyz(sentences, status_label0,status_label1,status_label2,status_label3)
             print('figures printing')
             figure(figsize=(20,50))
             plt.imshow(cropped_board)
             plt.show() 
-            #figure(figsize=(20,50))
-            #plt.imshow(mask_board)
-            #plt.show() 
-            #print('figures printed')
+            return data
+         
         else:
             status_label0.set('empty') 
             print('not analysing')
