@@ -119,8 +119,9 @@ class Window(tk.Frame):
         
     def read_text(self):
         cropped_board,mask_board=self.contours[self.countter]
-        data=self.imageProcessing.analyze_figures(cropped_board,mask_board,
+        self.data=self.imageProcessing.analyze_figures(cropped_board,mask_board,
                                              self.status_label0,self.status_label1,self.status_label2,self.status_label3)
+        self.print_data()
         
         height, width, channels = cropped_board.shape
         b,g,r = cv2.split(cropped_board)
@@ -132,6 +133,9 @@ class Window(tk.Frame):
         self.can.create_image((0, 0), image=self.image,anchor='nw' )
         
     def next_contour(self):
+        if self.data:
+            self.save_data()
+        
         self.status_label0.set('empty')
         self.status_label1.set('empty')
         self.status_label2.set('empty')
@@ -140,6 +144,27 @@ class Window(tk.Frame):
         print(self.countter)
         self.read_text()
         
+        self.var0.set(0)
+        self.var1.set(0)
+        self.var2.set(0)
+        self.var3.set(0)
+    
+    def print_data(self):
+        if self.data:
+            print('data ',len(self.data))
+            for d in self.data:
+                print(d,'\n')
+        else:
+            print('empty data')
+        
+    def save_data(self):
+        
+        self.data[0].append(self.var0.get())
+        self.data[1].append(self.var1.get())
+        self.data[2].append(self.var2.get())
+        self.data[3].append(self.var3.get())
+        for d in self.data:
+            print(d)
         
              
       
@@ -261,7 +286,6 @@ class ImageProcessing:
                         print('full sentence','\n',sentence_new)
                         print('numeric analysis ','std ',np.std(np_w_len),'mean ',np.mean(np_w_len),'length ',np_w_len.shape)
                         print('dictionary analysis ',np_exists)
-                        data.append([sentence_new,np_w_len,np_exists])
                         #sent.append(sentence_new)
                     else:
                         print('empty words ',sentence_new)
