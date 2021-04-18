@@ -23,13 +23,16 @@ class Window(tk.Frame):
 
     def __init__(self,master,opening,model):
         tk.Frame.__init__(self, master)   
+        self.N=20
         self.model=model
         self.df=self.model.model_run()                 
         self.master = master
         self.opening=opening
         self.init_window()
-        self.read_images()
-        self.init_labels_check()
+        
+       # self.read_images()
+        #self.init_labels_check()
+        
         #wczytać liczbę obiektów, żeby można było stworzyć liczbę labels i canvas oraz skategoryzować rysunki
         
         
@@ -42,61 +45,42 @@ class Window(tk.Frame):
         file = tk.Menu(menu)
         file.add_command(label="Exit", command=self.client_exit)
         file.add_command(label="Save", command=self.save)
-        file.add_command(label="Read", command=self.read_text) 
+        file.add_command(label="Redeable", command=self.read_text_1) 
+        file.add_command(label="Unredeable", command=self.read_text_0) 
         menu.add_cascade(label="File", menu=file)
         
         
-    def init_labels_check(self):
-        
-        
-        self.var1 = tk.IntVar()
-        self.var2 = tk.IntVar()
-        self.var3 = tk.IntVar()
-        
-        self.status_label0 = tk.StringVar()
-        self.status_label1 = tk.StringVar()
-        self.status_label2 = tk.StringVar()
-        
-        label1 = tk.Label( self.master, text=self.df.iloc[6,4], relief=tk.RAISED,height=1,width=50 )
-        label2 = tk.Label( self.master, text=self.df.iloc[10,4], relief=tk.RAISED,height=1,width=50 )
-        label3 = tk.Label( self.master, text=self.df.iloc[12,4], relief=tk.RAISED,height=1,width=50 )
-        #
-        
-        c1 = tk.Checkbutton(self.master, text='Correct?',variable=self.var1, onvalue=1, offvalue=0)
-        c2 = tk.Checkbutton(self.master, text='Correct?',variable=self.var2, onvalue=1, offvalue=0)
-        c3 = tk.Checkbutton(self.master, text='Correct?',variable=self.var3, onvalue=1, offvalue=0)
-        
-        print(self.heights[0])
-        label1.place(x=self.total_width, y=0,anchor ='nw')
-        c1.place(x=self.total_width+300, y=0,anchor ='nw')
-        label2.place(x=self.total_width, y=self.heights[0],anchor ='nw')
-        c2.place(x=self.total_width+300, y=self.heights[0],anchor ='nw')
-        label3.place(x=self.total_width, y=sum(self.heights[0:2]),anchor ='nw')
-        c3.place(x=self.total_width+300, y=sum(self.heights[0:2]),anchor ='nw')
-        
-        
-        #label1.pack()
-        #c1.pack()
-        #label2.pack()
-        #c2.pack()
-        #label3.pack()
-        #c3.pack()
-        
+    def init_labels_check(self,result):
+        c=[None]*self.N
+        self.var=[None]*self.N
+        for i in range(0,self.N):
+            self.var[i] = tk.IntVar()    
+            c[i]=tk.Checkbutton(self.master, text=str(result.index[i]),variable=self.var[i], onvalue=1, offvalue=0)
+            c[i].place(x=self.total_width, y=sum(self.heights[0:i]),anchor ='nw')
           
     def client_exit(self):
         print('exit')
         self.master.destroy()
         
         
-    def read_images(self):
-        list_wrong=self.df[self.df['results']==1]
-        print(list_wrong.index)
-        #self.image=self.opening.open_file(r'C:\Users\Lenovo\git\image_proccessing\resolution500\tmp\cropfig1_23.jpeg')
+    def read_text_0(self):
+        result=self.read_images(0)
+        self.init_labels_check(result)
+    
+    def read_text_1(self):
+        result=self.read_images(1)
+        self.init_labels_check(result)
+        
+    def read_images(self,choose):
+        result=self.df[self.df['results']==choose]
+        self.N=len(result)
         path='C:\\Users\\Lenovo\\git\\image_proccessing\\resolution500\\tmp\\'
-        file1=path+'cropfig1_'+str(list_wrong.index[1])+'.jpeg'
-        file2=path+'cropfig1_'+str(list_wrong.index[2])+'.jpeg'
-        file3=path+'cropfig1_'+str(list_wrong.index[3])+'.jpeg'
-        images = [Image.open(x) for x in [file1, file2, file3]]
+        file=[None]*self.N
+        for i in range(0,self.N):
+            file[i]=path+'cropfig1_'+str(result.index[i])+'.jpeg'  
+            
+        
+        images = [Image.open(x) for x in file]#file1, file2, file3
         images=[img.resize((int(img.size[0]/4),int(img.size[1]/4))) for img in images]
         #reslace images
                  
@@ -112,7 +96,7 @@ class Window(tk.Frame):
           new_im.paste(im, (0,y_offset))
           y_offset += im.size[1]
           
-       # self.image = Image.open(r'C:\Users\Lenovo\git\image_proccessing\resolution500\fig1.jpg')
+       
         self.width, self.height = new_im.size
         self.draw  = ImageDraw.Draw(new_im)
         self.photo = ImageTk.PhotoImage(image=new_im)
@@ -121,18 +105,16 @@ class Window(tk.Frame):
         self.canvas.pack()
         self.canvas.place(relx=0, rely=0,anchor ='nw')
         self.canvas.create_image(0, 0, image=self.photo, anchor=tk.NW)
+        return result
 
 
-    def read_text(self):
-        #najpierw trzeba odpalić model żeby df przerobić, potem można pytać czy prawidłowo
-        #self.status_label0.set(self.df.iloc[0,5])
-        print(self.var1.get())
-        print(self.var2.get())
-        print(self.var3.get())
-    
-    
     def save(self):
-        pass
+        new_results=[]
+        for i in range(0,self.N):
+            new_results.append(self.var[i].get())
+        print(np.array(new_results))
+        
+    
         
         
              
