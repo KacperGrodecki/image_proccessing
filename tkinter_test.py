@@ -38,34 +38,61 @@ class tkinterApp(tk.Tk):
 class StartPage(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
+        
         label = ttk.Label(self, text ="Startpage", font = LARGEFONT)
         label.grid(row = 0, column = 4, padx = 10, pady = 10)
-        button1 = ttk.Button(self, text ="Page 1",
+        button1 = ttk.Button(self, text ="Redeable",
         command = lambda : controller.show_frame(Page1))#show unredeable
         button1.grid(row = 1, column = 1, padx = 10, pady = 10)
-        button2 = ttk.Button(self, text ="Page 2",
+        button2 = ttk.Button(self, text ="Unredeable",
         command = lambda : controller.show_frame(Page2))#show redeable
         button2.grid(row = 2, column = 1, padx = 10, pady = 10)
   
 class Page1(tk.Frame):
      
     def __init__(self, parent, controller):
-         
         tk.Frame.__init__(self, parent)
-        label = ttk.Label(self, text ="Page 1", font = LARGEFONT)
+        
+       # menu = tk.Menu(self)
+       # file = tk.Menu(menu)
+       # file.add_command(label="Exit", command=self.client_exit)
+       # file.add_command(label="Save", command=self.save)
+        
+        label = ttk.Label(self, text ="Redeable", font = LARGEFONT)
         label.grid(row = 0, column = 4, padx = 10, pady = 10)
-        button2 = ttk.Button(self, text ="Page 2",
+        button2 = ttk.Button(self, text ="Unredeable",
                             command = lambda : controller.show_frame(Page2))
         button2.grid(row = 2, column = 1, padx = 10, pady = 10)
+        
+    def client_exit(self):
+        print('exit')
+        self.parent.destroy()
+        
+    def save(self):
+        pass
   
 class Page2(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
-        label = ttk.Label(self, text ="Page 2", font = LARGEFONT)
+        
+       # menu = tk.Menu(self)
+       # file = tk.Menu(menu)
+       # file.add_command(label="Exit", command=self.client_exit)
+       # file.add_command(label="Save", command=self.save)
+        
+        label = ttk.Label(self, text ="Unredeable", font = LARGEFONT)
         label.grid(row = 0, column = 4, padx = 10, pady = 10)
-        button1 = ttk.Button(self, text ="Page 1",
+        button1 = ttk.Button(self, text ="Redeable",
                             command = lambda : controller.show_frame(Page1))
         button1.grid(row = 1, column = 1, padx = 10, pady = 10)
+        
+        
+    def client_exit(self):
+        print('exit')
+        self.parent.destroy()
+        
+    def save(self):
+        pass
   
 
 app = tkinterApp()
