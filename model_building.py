@@ -7,36 +7,7 @@ import string
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.metrics import confusion_matrix
 import pickle
-
-
-
-def make_dict(loc_File):
-    with open(loc_File, encoding='UTF8') as f:
-        lines = f.readlines()
-    dict_pl = []
-    for line in lines:
-        word=line.split()
-        dict_pl.append(word)
  
-    return [item.replace(',','') for sublist in dict_pl for item in sublist]
-
-
-def check_pl(text):
-    return text in dict_pl 
-
-def dicts_pl(dict_pl,String_pl):
-    loc_dicts=[None]*len(String_pl)
-    loc_key=[None]*len(String_pl)
-    i=0
-    for ch in String_pl:
-        loc_dicts[i]=[x for x in dict_pl if x[0]==ch ]
-        loc_key[i]=ch
-        i+=1
-    return loc_dicts,loc_key
-        
-
-
-    
 def search_similarity(x):
     local_key=x[0]
     number=key.index(local_key)
@@ -127,43 +98,34 @@ def similar_lett(a, b):
         return similar_lett(str(a),str(b))         
     
 def model_build():    
-    
-    String_pl=string.ascii_lowercase+'ąśćęó'
-    File=r'C:\Users\Lenovo\git\image_proccessing\odm.txt'
-    dict_pl=make_dict(File)
-    key,dicts=dicts_pl(dict_pl,String_pl)
-    
-    labels=pd.read_csv(r'C:\Users\Lenovo\git\image_proccessing\resolution500\fig2labels.csv',sep='\t')
-    print(labels.shape)
-    
-    result=np.array([0,0,0,1,0,0,1,0,0,0,
-            1,1,1,1,0,0,1,1,0,0,
-            1,0,1,1,1,0,1,1,0,0,
-            1,1,0,1,0,0,1,1,1,1,
-            1,1,1,1,1,0,0,1,0,1,
-            0,0,0,1,1,1,1,1,0,0,
-            0,0,0,0,0,1,1,0,0,1,
-            1,1,1,0,0]
+    labels=pd.read_csv('/home/kacper/Dokumenty/GitHub/image_proccessing/tmp/labels.csv',sep='\t',index_col=0)
+    result_fig10=np.array([0,0,0,0,0,#zalacznik 
+                           1,0,1,0,1,#pax
+                           0,0,1,1,1,1,#dzialanosc
+                           1,1,0,1,0,0,1,#płace
+                           1,1,1,0,1,1,1,1,#podróże
+                           1,1,1,1,1,1,1,1,#augustyna
+                           1,1,1,1,1,1,1,1,#wnictw
+                           1,1,0,0,1,0,0,1,#budżet
+                           1,1,1,1,0,0,0]
             )
-    
     averages=labels.applymap(lambda x: average_word_length(x))
     stds=labels.applymap(lambda x: std(x))
-    long=labels.apply(lambda x: longest(x['2']),axis=1)
-    words_corr=labels.apply(lambda x: similar_lett(x['2'],x['3']) ,axis=1)
-    dig_cor_0=labels.apply(lambda x: similar_dig(x['0'],x['2']) ,axis=1)
-    dig_cor_1=labels.apply(lambda x: similar_dig(x['1'],x['2']) ,axis=1)
-    
-    print(averages.shape,' ',stds.shape,' ',long.shape,' ',words_corr.shape,' ',dig_cor_0.shape,' ',dig_cor_1.shape)
-    
-    frames=[averages,stds,long,words_corr,dig_cor_0,dig_cor_1]
+    long=labels.apply(lambda x: longest(x['1']),axis=1)
+    words_corr_12=labels.apply(lambda x: similar_lett(x['1'],x['2']) ,axis=1)
+    words_corr_23=labels.apply(lambda x: similar_lett(x['2'],x['3']) ,axis=1)
+    dig_cor=labels.apply(lambda x: similar_dig(x['0'],x['1']) ,axis=1)
+    frames=[averages,stds,long,words_corr_12,words_corr_23,dig_cor]
     x=pd.concat(frames,axis=1)
     
     x=x.fillna(0)    
     x=x.iloc[:,:].values
     
     clf = DecisionTreeClassifier(random_state=0)
-    clf.fit(x,result)
-    confusion_matrix(result, clf.predict(x))
-    pickle.dump(clf, open('model', 'wb'))
+    clf.fit(x,result_fig10)
+    pickle.dump(clf,open('model', 'wb'))
+    print(confusion_matrix(result_fig10, clf.predict(x)))
 
 model_build()
+
+    
