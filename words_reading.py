@@ -4,8 +4,8 @@ import numpy as np
 from difflib import SequenceMatcher
 import string
 
-whitelist = set('aąbcćdeęfghijklłmnoóprsśtuvwxyzż AĄBCĆDEEFGHIJKLŁMNOÓPQRSŚTUVWXYZŻ')
-
+whitelist = set('aąbcćdeęfghijklłmnoóprsśtuvwxyzźż AĄBCĆDEEFGHIJKLŁMNOÓPQRSŚTUVWXYZŹŻ')
+'''
 def make_dict(loc_File):
     with open(loc_File, encoding='UTF8') as f:
         lines = f.readlines()
@@ -21,7 +21,6 @@ def check_pl(a):
     return a in dict_pl 
 
 
-
 def dicts_pl(dict_pl,String_pl):
     loc_dicts=[None]*len(String_pl)
     loc_key=[None]*len(String_pl)
@@ -31,7 +30,7 @@ def dicts_pl(dict_pl,String_pl):
         loc_key[i]=ch
         i+=1
     return loc_dicts,loc_key
-          
+ '''         
 
 def clean_up(a):
     return a.strip(string.punctuation)
@@ -76,13 +75,13 @@ def char_type_word(a):
     alpha=0
     for char in a:
         if char in String_pl:
-            #alpha+=int(char.isalpha())
             alpha+=1
         dig+=int(char.isnumeric())
     if (dig+alpha)>0:
         return alpha/(dig+alpha)
     else:
         return None
+
 
 def check_pl_alfabet(a):
     first_letter=key.index(a[0])
@@ -109,17 +108,19 @@ def word_correction(a):
                             if check_pl_alfabet(word_new):
                                 print(word_new)
        
-String_pl='aąbcćdeęfghijklłmnoóprsśtuvwxyzż AĄBCĆDEEFGHIJKLŁMNOÓPQRSŚTUVWXYZŻ'
+String_pl='aąbcćdeęfghijklłmnoópqrsśtuvwxyzż AĄBCĆDEEFGHIJKLŁMNOÓPQQRSŚTUVWXYZŻ'
 File='/home/kacper/Dokumenty/GitHub/image_proccessing/odm.txt'
-dict_pl=make_dict(File)
-dicts,key=dicts_pl(dict_pl,String_pl)
+#dict_pl=make_dict(File)
+#dicts,key=dicts_pl(dict_pl,String_pl)
 
 
 def read_labels():
     labels=pd.read_csv('/home/kacper/Dokumenty/GitHub/image_proccessing/result.csv',sep=',',index_col=0 )
-    labels=labels[labels['results_cor']==1]
     
-    labels['type']=labels['1'].apply(char_type_word)
+    labels['type1']=labels['1'].apply(char_type_word)
+    labels['type2']=labels['2'].apply(char_type_word)
+    labels['type3']=labels['3'].apply(char_type_word)
+    
     labels['pl_1']=labels['1'].apply(check_string_pl)
     labels['pl_2']=labels['2'].apply(check_string_pl)
     labels['pl_3']=labels['3'].apply(check_string_pl)
@@ -131,61 +132,19 @@ def read_labels():
     
     labels.loc[labels['words_corel']>0.9,'final']=labels['2']
     labels.loc[labels['words_corel1']>0.9,'final']=labels['3']
-    #labels.loc[(labels['dig_cor_12']>0.9) & (labels['type']<0.5),'final']=labels['1']
-    #labels.loc[(labels['dig_cor_23']>0.9) & (labels['type']<0.5),'final']=labels['2']
-    #szukaj maximum pl
+  
     labels['Max']=labels[['pl_1','pl_2','pl_3']].idxmax(axis=1).apply(lambda x: x[-1]).values
     
     labels['final']=np.select([labels.Max=='1',labels.Max=='2',labels.Max=='3'],[labels['1'],labels['2'],labels['3']])
+    #type1 lub 2 lub 3
+    labels.loc[(labels['dig_cor_12']>0.9) & ((labels['type1']!=None) &(labels['type2']<0.5)),'final']=labels['1']
+    labels.loc[(labels['dig_cor_23']>0.9) & ((labels['type2']!=None) &(labels['type2']<0.5)),'final']=labels['2']
     
-    labels.loc[(labels['dig_cor_12']>0.9) & (labels['type']<0.5),'final']=labels['1']
-    labels.loc[(labels['dig_cor_23']>0.9) & (labels['type']<0.5),'final']=labels['2']
-    
-    
-    # labels.loc[(labels['pl_1']==1)&(labels['type']>0.5),'final']=labels['1']
-   # labels.loc[(labels['pl_2']==1)&(labels['type']>0.5),'final']=labels['2']
-   # labels.loc[(labels['pl_3']==1)&(labels['type']>0.5),'final']=labels['3']
-   
-   #do poprawki skróty i liczby
     return labels
 
 result=read_labels()
 
-
-res=result[['final']]
-
-xywh=pd.read_csv('/home/kacper/Dokumenty/GitHub/image_proccessing/tmp/xywh.csv',sep='\t',index_col=0 )
-
-res_xywh=pd.concat([res, xywh], axis=1,join="inner")
-res_xywh['y']=res_xywh['1'].diff()
-
-res_xywh['y']=res_xywh['y']/60
-res_xywh.iloc[0,5]=0
-res_xywh['x']=40*(res_xywh['0']-np.min(res_xywh['0']))/(np.max(res_xywh['0'])-np.min(res_xywh['0']))
-output=''
-for index, row in res_xywh.iterrows():
-    output+='\n'*int(row['y'])+' '*int(row['x'])+row['final']
-    
-text_file = open("Output.txt", "w")
-text_file.write(output)
-text_file.close()
+result.to_csv('result_out.csv')
 
 
-x=result[['type','pl_1','pl_2','pl_3','words_corel','words_corel1','dig_cor_12','dig_cor_23']]
-x=x.fillna(0)
-X=x.iloc[:,:].values
 
-from sklearn.cluster import KMeans
-kmeans = KMeans(n_clusters=3, random_state=0).fit(X)
-
-result['kmeans']=kmeans.labels_
-kmeans.inertia_
-y=[]
-for i in range(1,10):
-    kmeans = KMeans(n_clusters=i, random_state=0).fit(X)
-    y.append(kmeans.inertia_)
-import matplotlib.pyplot as plt
-plt.plot(y)
-
-kmeans = KMeans(n_clusters=4, random_state=0).fit(X)
-result['kmeans']=kmeans.labels_

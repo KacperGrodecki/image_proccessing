@@ -256,6 +256,6 @@ root = tk.Tk()
 opening=Opening()
 imageProcessing=ImageProcessing()
     
-root.geometry("1000x1000")
+root.geometry("500x500")
 app = Window(root,opening,imageProcessing)
 root.mainloop()  
