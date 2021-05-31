@@ -92,7 +92,10 @@ def char_type_word(a):
 
 
 def check_pl_alfabet(a):
-    first_letter=key.index(a[0])
+    try:
+        first_letter=key.index(a[0])
+    except:
+        return False
     if a in dicts[first_letter]:
         return True
     else:
@@ -116,7 +119,7 @@ def word_correction(a):
                             if check_pl_alfabet(word_new):
                                 print(word_new)
        
-String_pl='aąbcćdeęfghijklłmnoópqrsśtuvwxyzż AĄBCĆDEEFGHIJKLŁMNOÓPQQRSŚTUVWXYZŻ'
+String_pl='aąbcćdeęfghijklłmnoópqrsśtuvwxyzźż AĄBCĆDEEFGHIJKLŁMNOÓPQQRSŚTUVWXYZŹŻ'
 File='/home/kacper/Dokumenty/GitHub/image_proccessing/odm.txt'
 #dict_pl=make_dict(File)
 #dicts,key=dicts_pl(dict_pl,String_pl)

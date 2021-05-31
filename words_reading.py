@@ -5,7 +5,7 @@ from difflib import SequenceMatcher
 import string
 
 whitelist = set('aąbcćdeęfghijklłmnoóprsśtuvwxyzźż AĄBCĆDEEFGHIJKLŁMNOÓPQRSŚTUVWXYZŹŻ')
-'''
+
 def make_dict(loc_File):
     with open(loc_File, encoding='UTF8') as f:
         lines = f.readlines()
@@ -30,7 +30,7 @@ def dicts_pl(dict_pl,String_pl):
         loc_key[i]=ch
         i+=1
     return loc_dicts,loc_key
- '''         
+     
 
 def clean_up(a):
     return a.strip(string.punctuation)
@@ -84,7 +84,10 @@ def char_type_word(a):
 
 
 def check_pl_alfabet(a):
-    first_letter=key.index(a[0])
+    try:
+        first_letter=key.index(a[0])
+    except:
+        return False
     if a in dicts[first_letter]:
         return True
     else:
@@ -110,12 +113,16 @@ def word_correction(a):
        
 String_pl='aąbcćdeęfghijklłmnoópqrsśtuvwxyzż AĄBCĆDEEFGHIJKLŁMNOÓPQQRSŚTUVWXYZŻ'
 File='/home/kacper/Dokumenty/GitHub/image_proccessing/odm.txt'
-#dict_pl=make_dict(File)
-#dicts,key=dicts_pl(dict_pl,String_pl)
 
 
-def read_labels():
-    labels=pd.read_csv('/home/kacper/Dokumenty/GitHub/image_proccessing/result.csv',sep=',',index_col=0 )
+
+def read_labels(labels,dict_pl,dicts,key):
+    #labels=pd.read_csv('/home/kacper/Dokumenty/GitHub/image_proccessing/result.csv',sep=',',index_col=0 )
+    #dict_pl=make_dict(File)
+    #global dicts
+    #global key
+    #dicts, key=dicts_pl(dict_pl,String_pl)
+    
     
     labels['type1']=labels['1'].apply(char_type_word)
     labels['type2']=labels['2'].apply(char_type_word)
@@ -141,10 +148,3 @@ def read_labels():
     labels.loc[(labels['dig_cor_23']>0.9) & ((labels['type2']!=None) &(labels['type2']<0.5)),'final']=labels['2']
     
     return labels
-
-result=read_labels()
-
-result.to_csv('result_out.csv')
-
-
-

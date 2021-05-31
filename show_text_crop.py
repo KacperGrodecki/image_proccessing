@@ -5,35 +5,34 @@ Spyder Editor
 This is a temporary script file.
 """
 import pandas as pd
-import cv2
 from PIL import Image,ImageTk
 import numpy as np
 import enchant
 import re
 d = enchant.Dict("pl_PL")
-import time
-path = 'C:\\Users\\Lenovo\\git\\image_proccessing\\resolution500\\'        
+path = 'home/kacper/Dokumenty/GitHub/image_proccessing/tmp/'        
 import tkinter as tk
-from tkinter.filedialog import askopenfilename
-from PIL import ImageTk, Image, ImageDraw
+from PIL import ImageDraw
 from difflib import SequenceMatcher
 import pickle
+
 
 class Window(tk.Frame):
 
     def __init__(self,master,opening,model):
         tk.Frame.__init__(self, master)   
-        self.N=20
         self.model=model
-        self.df=self.model.model_run()                 
+        self.result=self.model.model_run()                 
         self.master = master
         self.opening=opening
         self.init_window()
+        self.N=self.result.shape[0]
+        self.read_0=0
+        self.read_1=0
         
-       # self.read_images()
-        #self.init_labels_check()
-        
-        #wczytać liczbę obiektów, żeby można było stworzyć liczbę labels i canvas oraz skategoryzować rysunki
+        self.label=[None]*self.N
+        self.c=[None]*self.N
+        self.var=[None]*self.N
         
         
     def init_window(self):
@@ -50,13 +49,20 @@ class Window(tk.Frame):
         menu.add_cascade(label="File", menu=file)
         
         
-    def init_labels_check(self,result):
-        c=[None]*self.N
-        self.var=[None]*self.N
-        for i in range(0,self.N):
-            self.var[i] = tk.IntVar()    
-            c[i]=tk.Checkbutton(self.master, text=str(result.index[i]),variable=self.var[i], onvalue=1, offvalue=0)
-            c[i].place(x=self.total_width, y=sum(self.heights[0:i]),anchor ='nw')
+    def init_labels_check(self,result_01,distance):
+        #N macierz-
+        #result-macierz
+        i=0
+        while i< result_01.shape[0]: 
+       # #for i in range(0,self.N):
+       #     #problem dla dużych N-wszystkie wyniki result-wszystkie, ale result_01 to lokalne
+            print(i,' ',result_01.index[i])#wyświetyla wyniki dla wszystkich i a nie wszystkie są zawarte w 
+            self.var[result_01.index[i]] = tk.IntVar()    
+            self.c[self.result.index[i]]=tk.Checkbutton(self.master, text=result_01.index[i],variable=self.var[result_01.index[i]], onvalue=1, offvalue=0)#str(result_01.index[i])
+            #self.c[self.result.index[i]]
+            self.c[self.result.index[i]].place(x=distance, y=sum(self.heights[0:i]),anchor ='nw')
+            i+=1
+            
           
     def client_exit(self):
         print('exit')
@@ -64,24 +70,26 @@ class Window(tk.Frame):
         
         
     def read_text_0(self):
-        result=self.read_images(0)
-        self.init_labels_check(result)
+        result_01=self.read_images(0)
+        self.init_labels_check(result_01,0)
+        self.read_0=1
+        
     
     def read_text_1(self):
-        result=self.read_images(1)
-        self.init_labels_check(result)
+        result_01=self.read_images(1)
+        self.init_labels_check(result_01,40)
         
     def read_images(self,choose):
-        result=self.df[self.df['results']==choose]
-        self.N=len(result)
-        path='C:\\Users\\Lenovo\\git\\image_proccessing\\resolution500\\tmp\\'
-        file=[None]*self.N
-        for i in range(0,self.N):
-            file[i]=path+'cropfig1_'+str(result.index[i])+'.jpeg'  
+        result_01=self.result[self.result['results']==choose]
+        N_img=len(result_01)
+        path='/home/kacper/Dokumenty/GitHub/image_proccessing/tmp/'
+        file=[None]*N_img
+        for i in range(0,N_img):
+            file[i]=path+'crop_'+str(result_01.index[i])+'.jpeg'  
             
         
         images = [Image.open(x) for x in file]#file1, file2, file3
-        images=[img.resize((int(img.size[0]/4),int(img.size[1]/4))) for img in images]
+        images=[img.resize((int(img.size[0]/6),int(img.size[1]/6))) for img in images]
         #reslace images
                  
         self.widths, self.heights = zip(*(i.size for i in images))
@@ -103,16 +111,27 @@ class Window(tk.Frame):
         
         self.canvas = tk.Canvas(self.master, width=self.width, height=self.height)
         self.canvas.pack()
-        self.canvas.place(relx=0, rely=0,anchor ='nw')
+        self.canvas.place(x=100, y=0,anchor ='nw')
         self.canvas.create_image(0, 0, image=self.photo, anchor=tk.NW)
-        return result
-
+        return result_01
+    
 
     def save(self):
         new_results=[]
         for i in range(0,self.N):
             new_results.append(self.var[i].get())
-        print(np.array(new_results))
+        #np_new=np.array(new_results)
+        #np_results=self.result.iloc[:,-1].values
+        
+        np_xor=np.array(new_results)^self.result.iloc[:,-1].values
+        
+        print(self.result.iloc[:,-1].values)
+        print(np_xor)
+        self.result['results_cor']=np_xor
+        self.result=self.result[self.result['results_cor']==1]
+        self.result=self.result.drop(columns=['results_cor', 'results'])
+        self.result.to_csv('result.csv')
+        
         
     
         
@@ -133,19 +152,19 @@ class Model:
         pass
     
     def model_run(self):
-        labels=pd.read_csv(r'C:\Users\Lenovo\git\image_proccessing\resolution500\tmp\_labelsfig1.csv',sep='\t')
+        labels=pd.read_csv('/home/kacper/Dokumenty/GitHub/image_proccessing/tmp/labels.csv',sep='\t',index_col=0)
         clf=pickle.load(open('model', 'rb'))
         #print(labels.shape)
         averages=labels.applymap(lambda x: self.average_word_length(x))
         stds=labels.applymap(lambda x: self.std(x))
-        long=labels.apply(lambda x: self.longest(x['2']),axis=1)
-        words_corr=labels.apply(lambda x: self.similar_lett(x['2'],x['3']) ,axis=1)
-        dig_cor_0=labels.apply(lambda x: self.similar_dig(x['0'],x['2']) ,axis=1)
-        dig_cor_1=labels.apply(lambda x: self.similar_dig(x['1'],x['2']) ,axis=1)
+        long=labels.apply(lambda x: self.longest(x['1']),axis=1)
+        words_corr_12=labels.apply(lambda x: self.similar_lett(x['1'],x['2']) ,axis=1)
+        words_corr_23=labels.apply(lambda x: self.similar_lett(x['2'],x['3']) ,axis=1)
+        dig_cor=labels.apply(lambda x: self.similar_dig(x['0'],x['1']) ,axis=1)
+        frames=[averages,stds,long,words_corr_12,words_corr_23,dig_cor]
+        x=pd.concat(frames,axis=1)
         
-        print(averages.shape,' ',stds.shape,' ',long.shape,' ',words_corr.shape,' ',dig_cor_0.shape,' ',dig_cor_1.shape)
-        
-        frames=[averages,stds,long,words_corr,dig_cor_0,dig_cor_1]
+        #print(averages.shape,' ',stds.shape,' ',long.shape,' ',words_corr.shape,' ',dig_cor_0.shape,' ',dig_cor_1.shape)
         
         x=pd.concat(frames,axis=1)
         x=x.fillna(0)    
@@ -153,7 +172,7 @@ class Model:
         results=clf.predict(x)
         labels['results']=results
         
-        print(labels.iloc[0,5])
+        
         
         return labels
         
