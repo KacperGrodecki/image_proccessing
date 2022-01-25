@@ -1,0 +1,132 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Jun  4 09:54:35 2021
+
+@author: kacper
+"""
+path = '/home/kacper/Dokumenty/GitHub/image_proccessing/'       
+import pandas as pd 
+from os import listdir
+from os.path import isfile, join
+import pickle
+import functions
+import numpy as np
+import words_reading
+
+def check_pl(a):
+    return a in dict_pl 
+
+def dicts_pl(dict_pl,String_pl):
+    loc_dicts=[None]*len(String_pl)
+    loc_key=[None]*len(String_pl)
+    i=0
+    for ch in String_pl:
+        loc_dicts[i]=[x for x in dict_pl if x[0]==ch ]
+        loc_key[i]=ch
+        i+=1
+    return loc_dicts,loc_key
+
+
+
+def make_dict(loc_File):
+    with open(loc_File, encoding='UTF8') as f:
+        lines = f.readlines()
+    dict_pl = []
+    for line in lines:
+        word=line.split()
+        dict_pl.append(word)
+ 
+    return [item.replace(',','') for sublist in dict_pl for item in sublist]
+
+def make_label(df0):    
+    filename='model_rf'
+    loaded_model = pickle.load(open(filename, 'rb'))
+    label=df0.iloc[:,0:4]
+    label=label.fillna(0) 
+    labels=words_reading.read_labels(label)
+    final,labels=labels
+    X=labels.iloc[:,4:].fillna(0).values 
+    y=loaded_model.predict(X)
+    label=df0.iloc[:,0:4]
+    label['result']=y
+    label['final']=final
+    label_fin=label[label['result']==1]
+    label=label.fillna(' ')
+    label_file=label[label['1'].str.contains('nowy plik',na=False)]
+    return label,label_file
+
+def make_text(label_fin):
+    String_pl='aąbcćdeęfghijklłmnoópqrsśtuvwxyzż AĄBCĆDEEFGHIJKLŁMNOÓPQQRSŚTUVWXYZŻ'
+    File='/home/kacper/Dokumenty/GitHub/image_proccessing/odm.txt'
+    dict_pl=make_dict(File)
+    dicts, key=dicts_pl(dict_pl,String_pl)
+    whitelist = set('aąbcćdeęfghijklłmnoóprsśtuvwxyzźż AĄBCĆDEEFGHIJKLŁMNOÓPQRSŚTUVWXYZŹŻ')
+    
+    text=[]
+    for index, row in label_fin.iterrows():
+        sentence=row['final']
+        #print(sentence)
+        if isinstance(sentence, str):
+            #print(sentence)
+            for word in sentence.split():
+                #print(word)
+                word=word.replace('"','').replace('-','').replace('?','').replace('.','').replace(',','').replace('«','')
+                #print(word)
+                if word in ['"',':',',','.','\n','\x0c','-','—','','>']:
+                    continue
+                try:
+                    if words_reading.check_pl_alfabet(key,dicts,word.lower())==1:
+                        #print(word)
+                        text.append(word)
+                except ValueError:
+                    pass
+    return text
+
+def text_from_files(mypath):
+    onlyfiles = [f for f in listdir(mypath) if isfile(join(mypath, f))]
+    
+    df0=pd.read_csv(mypath+'/'+onlyfiles[0],sep=',',index_col=0)
+    df0_file=pd.DataFrame(np.array(df0.shape[0]*['none']))
+    for file in onlyfiles:
+        try:
+            df=pd.read_csv(mypath+'/'+file,sep=',',index_col=0)
+            file=np.array(df.shape[0]*[file])
+            df_file=pd.DataFrame(file)
+        except:
+            continue
+        
+        #print(file)
+        
+        #print(df_file.head())
+        #try:
+            #df=pd.concat([df,df_file],axis=1)
+            #print(df.head())
+            #df0=pd.concat([df0,df])
+        df0=df0.append(df,ignore_index=True)
+        df0_file=df0_file.append(df_file,ignore_index=True)
+        #except:
+        #    pass
+    #print(df0.head(20))
+    label_fin,label_file=make_label(df0)
+    text=make_text(label_fin)  
+     
+                   
+    with open('text_file1.txt', 'wb') as fp:
+        pickle.dump(text, fp)
+    return text,label_fin,df0_file
+
+
+#load files list
+mypath = '/home/kacper/Dokumenty/GitHub/data_image_processing/text2'  
+text,label_fin,df_file=text_from_files(mypath)
+label_fin_pl=label_fin[label_fin['result']==1]
+label_fin_pl=label_fin_pl.reset_index()
+label_fin_pl.to_csv('label_fin.csv')
+print(df_file.isna().sum())
+files=df_file[0].str.extract('(\d+)').fillna(0).astype('int')
+data=pd.concat((label_fin_pl,files),axis=1)
+data.to_csv('dane.csv')
+#plik=label_fin_pl[label_fin_pl['1'].str.find('fig')>0]
+#indexes=plik.index.values
+#files=plik['1'].str.extract('(\d+)')

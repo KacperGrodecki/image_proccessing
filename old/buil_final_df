@@ -1,0 +1,64 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Jun 18 08:18:12 2021
+
+@author: kacper
+"""
+import pandas as pd
+import words_reading
+import numpy as np
+def dicts_pl(dict_pl,String_pl):
+    loc_dicts=[None]*len(String_pl)
+    loc_key=[None]*len(String_pl)
+    i=0
+    for ch in String_pl:
+        loc_dicts[i]=[x for x in dict_pl if x[0]==ch ]
+        loc_key[i]=ch
+        i+=1
+    return loc_dicts,loc_key
+def dicts_pl(dict_pl,String_pl):
+    loc_dicts=[None]*len(String_pl)
+    loc_key=[None]*len(String_pl)
+    i=0
+    for ch in String_pl:
+        loc_dicts[i]=[x for x in dict_pl if x[0]==ch ]
+        loc_key[i]=ch
+        i+=1
+    return loc_dicts,loc_key
+String_pl='aąbcćdeęfghijklłmnoópqrsśtuvwxyzż AĄBCĆDEEFGHIJKLŁMNOÓPQQRSŚTUVWXYZŻ'
+File='/home/kacper/Dokumenty/GitHub/image_proccessing/odm.txt'
+dict_pl=make_dict(File)
+dicts, key=dicts_pl(dict_pl,String_pl)
+#final combined df_sort and label_fin_pl
+files=df_file[0].str.extract('(\d+)').fillna(0).astype('int')
+label_fin['files']=files[0]
+
+label_res=label_fin[['result','final','files']].copy()
+label_res=label_res[label_res['result']==1]
+label_res=label_res.sort_values(by=['files'])
+text=label_res.groupby('files')['final'].apply(lambda x: x.sum()).sort_index().to_frame()
+df_sort.index.values
+
+word_pl=[]
+for word in df_sort.index.values:
+    if words_reading.check_string_pl(word, key, dicts)==1:
+        word_pl.append(word)
+
+strony=[[] for _ in range(0,text.shape[0]+10)]
+for word in word_pl:
+    #print(word)
+    for index,row in text.iterrows():
+        #print(row['final'])
+        if word in row['final']:
+            if word not in strony[index]:
+                #print(index)
+                strony[index].append(word)
+                
+strony.sort()
+strony_df=pd.DataFrame(np.array(strony))
+strony_df[0].astype('str')
+strony_df.dtype
+strony_df.apply(lambda x: x.sort())
+strony=strony_df.values
+str_strony=str(strony)
